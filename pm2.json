@@ -1,0 +1,12 @@
+{
+    "name": "Rate ME server",
+    "script": "app.js",
+    "instances": 0,
+    "exec_mode": "cluster",
+    "env": {
+      "NODE_ENV": "dev"
+    },
+    "merge_logs": true,
+    "log": "./logs/rateme-server.log",
+    "log_date_format": "YYYY-MM-DD HH:mm:ss"
+  }

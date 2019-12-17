@@ -1,0 +1,1 @@
+module.exports.mongoDublicateError = [11000];
