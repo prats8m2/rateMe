@@ -2,8 +2,6 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const User = new Schema({
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
     mobile: { type: String, unique : true, required: true },
     fullName: { type: String, required: true},
     email: { type: String, required: false},
@@ -26,6 +24,7 @@ const User = new Schema({
     status: { type: Number, required: false, default: 1 },
     ratings: [],
     contacts: [],
+    isRegistered: { type: Number, required: false, default: 1 },
     settings:{
             notification: { type: Number, required: true, default: 1 }
         }

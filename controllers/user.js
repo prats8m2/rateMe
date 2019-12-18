@@ -11,8 +11,7 @@ var jwt = require('jsonwebtoken');
  * @apiName Registration
  * @apiGroup User
  *
- * @apiParam {String} firstName User's first name.
- * @apiParam {String} lastName User's last name.
+ * @apiParam {String} fullName User's full name.
  * @apiParam {String} password User's account password.
  * @apiParam {String} gender User's gender M/F.
  * @apiParam {String} mobile User's mobile number.
@@ -28,7 +27,7 @@ var jwt = require('jsonwebtoken');
  *       HTTP/500 Internal server error
  *      {
  *          "status": false,
- *          "message": "User validation failed: firstName: Path `firstName` is required.",
+ *          "message": "User validation failed: fullName: Path `fullName` is required.",
  *          "err": 500,
  *          "data": null
  *       }
@@ -43,27 +42,55 @@ var jwt = require('jsonwebtoken');
  *      }
  */
 exports.register = function (req, res) {
-   var logId  = LOGS.getlogId();
-   LOGS.printClientDataLogs(req,logId);
-   LOGS.printLogs(req,logId,0,"Registration process starts for: "+req.body.firstName+" "+req.body.lastName);
-   BIND.register(req.body,function(bindData){
-       var newUser = new USER(bindData);
-        newUser.save(function (err,result) {
+    var logId = LOGS.getlogId();
+    LOGS.printClientDataLogs(req, logId);
+    LOGS.printLogs(req, logId, 0, "Registration process starts for: " + req.body.firstName + " " + req.body.lastName);
+    BIND.register(req.body, function (bindData) {
+        var newUser = new USER(bindData);
+        newUser.save(function (err, result) {
             if (!err) {
-                LOGS.printLogs(req,logId,1,"Registration process SUCCESS for: "+req.body.firstName+" "+req.body.lastName); 
-                RESP.send(res,true,"Registration Succesfull");            
+                LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.firstName + " " + req.body.lastName);
+                RESP.send(res, true, "Registration Succesfull");
             } else {
-                if(CONST.mongoDublicateError.indexOf(err.code) != -1){
-                    LOGS.printLogs(req,logId,3,err);
-                    RESP.send(res,false,"Account already exist",CONST.ERROR.ACCOUNT_ALREADY_EXIST);                
+                if (CONST.mongoDublicateError.indexOf(err.code) != -1) {
+                    USER.find({ mobile: bindData.mobile }, function (err, result) {
+                        if (!err) {
+                            if (result && result.length) {
+                                if (result[0].isRegistered) {
+                                    LOGS.printLogs(req, logId, 3, err);
+                                    RESP.send(res, false, "Account already exist", CONST.ERROR.ACCOUNT_ALREADY_EXIST);
+                                }
+                                else {
+                                    USER.find({ _id: result[0]._id }, { 'isRegistered': 1 }, function (err, result) {
+                                        if (!err) {
+                                            LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.firstName + " " + req.body.lastName);
+                                            RESP.send(res, true, "Registration Succesfull");
+                                        }
+                                        else {
+                                            LOGS.printLogs(req, logId, 3, err);
+                                            RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+                                        }
+                                    });
+                                }
+                            }
+                            else {
+                                LOGS.printLogs(req, logId, 3, err);
+                                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+                            }
+                        }
+                        else {
+                            LOGS.printLogs(req, logId, 3, err);
+                            RESP.send(res, false, "Account already exist", CONST.ERROR.ACCOUNT_ALREADY_EXIST);
+                        }
+                    });
                 }
-                else{
-                    LOGS.printLogs(req,logId,3,err);
-                    RESP.send(res,false,err,CONST.ERROR.INTERNAL_SERVER_ERROR);
+                else {
+                    LOGS.printLogs(req, logId, 3, err);
+                    RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
                 }
             }
         });
-   });
+    });
 };
 
 /**
@@ -80,31 +107,31 @@ exports.register = function (req, res) {
  * @apiSuccess {Object} data  Data of the API Response.
  */
 
-exports.login = function(req,res){
-    var logId  = LOGS.getlogId();
-    LOGS.printClientDataLogs(req,logId);
-    LOGS.printLogs(req,logId,0,"Login process starts for: "+req.body.mobile);
-    BIND.login(req.body,function(bindData){
-        USER.find( { $and: [ { mobile : bindData.mobile }, { password: bindData.password } ] } ,function(err,result){
+exports.login = function (req, res) {
+    var logId = LOGS.getlogId();
+    LOGS.printClientDataLogs(req, logId);
+    LOGS.printLogs(req, logId, 0, "Login process starts for: " + req.body.mobile);
+    BIND.login(req.body, function (bindData) {
+        USER.find({ $and: [{ mobile: bindData.mobile }, { password: bindData.password }] }, function (err, result) {
             if (!err) {
-                if(result.length && result[0].fullName){
-                    LOGS.printLogs(req,logId,1,"Login process SUCCESS for: "+result[0].fullName);
-                    jwt.sign({ userId: result[0]._id }, "Shhhh",{expiresIn:60}, function(err, token) {
-                        BIND.loginResp(result[0],token,function(respData){
-                            RESP.send(res,true,"Login Succesfull",null,respData);            
+                if (result.length && result[0].fullName) {
+                    LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result[0].fullName);
+                    jwt.sign({ userId: result[0]._id }, "Shhhh", { expiresIn: 60 }, function (err, token) {
+                        BIND.loginResp(result[0], token, function (respData) {
+                            RESP.send(res, true, "Login Succesfull", null, respData);
                         });
-                    }); 
+                    });
                 }
-                else{
-                    LOGS.printLogs(req,logId,3,"Login process Failed for: "+req.body.mobile); 
-                    RESP.send(res,false,"Invalid Mobile number or Password");
+                else {
+                    LOGS.printLogs(req, logId, 3, "Login process Failed for: " + req.body.mobile);
+                    RESP.send(res, false, "Invalid Mobile number or Password");
                 }
             } else {
-                LOGS.printLogs(req,logId,3,err);
-                RESP.send(res,false,"Internal Server Error",err);
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, "Internal Server Error", err);
             }
         });
-    }); 
+    });
 }
 
 /**
@@ -120,27 +147,27 @@ exports.login = function(req,res){
  * @apiSuccess {Object} data  Data of the API Response.
  *
  */
-exports.getUser = function(req,res){
-    var logId  = LOGS.getlogId();
+exports.getUser = function (req, res) {
+    var logId = LOGS.getlogId();
     var userId = req.user.userId;
-    LOGS.printClientDataLogs(req,logId);
-    LOGS.printLogs(req,logId,0,"Fetch User details process starts for: "+userId);
-        USER.find( { _id : userId} ,function(err,result){
-            if (!err) {
-                if(result.length && result[0].fullName){
-                    LOGS.printLogs(req,logId,1,"Get User SUCCESS for: "+result[0].fullName);
-                    BIND.getUserResp(result[0],function(respData){
-                        RESP.send(res,true,"Success",null,respData);
-                    });         
-                }
-                else{
-                    LOGS.printLogs(req,logId,3,"Get User Failed for: "+userId); 
-                    RESP.send(res,false,"No Result Found");
-                }
-            } else {
-                LOGS.printLogs(req,logId,3,err);
-                RESP.send(res,false,"Internal Server Error",err);
+    LOGS.printClientDataLogs(req, logId);
+    LOGS.printLogs(req, logId, 0, "Fetch User details process starts for: " + userId);
+    USER.find({ _id: userId }, function (err, result) {
+        if (!err) {
+            if (result.length && result[0].fullName) {
+                LOGS.printLogs(req, logId, 1, "Get User SUCCESS for: " + result[0].fullName);
+                BIND.getUserResp(result[0], function (respData) {
+                    RESP.send(res, true, "Success", null, respData);
+                });
             }
+            else {
+                LOGS.printLogs(req, logId, 3, "Get User Failed for: " + userId);
+                RESP.send(res, false, "No Result Found");
+            }
+        } else {
+            LOGS.printLogs(req, logId, 3, err);
+            RESP.send(res, false, "Internal Server Error", err);
+        }
     });
 };
 
@@ -157,25 +184,25 @@ exports.getUser = function(req,res){
  * 
  *
  */
-exports.sendPass = function(req,res){
-    var logId  = LOGS.getlogId();
+exports.sendPass = function (req, res) {
+    var logId = LOGS.getlogId();
     var number = req.body.mobile;
-    LOGS.printClientDataLogs(req,logId);
-    LOGS.printLogs(req,logId,0,"Sent User PIN to its number process starts for: "+number);
-        USER.find( { mobile : number} ,function(err,result){
-            if (!err) {
-                if(result.length && result[0].fullName){
-                    LOGS.printLogs(req,logId,1,"User details fetched succefully for: "+result[0].fullName);
-                    RESP.send(res,true,"Success",null,null);         
-                }
-                else{
-                    LOGS.printLogs(req,logId,3,"No User found for: "+number); 
-                    RESP.send(res,false,"No Result Found");
-                }
-            } else {
-                LOGS.printLogs(req,logId,3,err);
-                RESP.send(res,false,"Internal Server Error",err);
+    LOGS.printClientDataLogs(req, logId);
+    LOGS.printLogs(req, logId, 0, "Sent User PIN to its number process starts for: " + number);
+    USER.find({ mobile: number }, function (err, result) {
+        if (!err) {
+            if (result.length && result[0].fullName) {
+                LOGS.printLogs(req, logId, 1, "User details fetched succefully for: " + result[0].fullName);
+                RESP.send(res, true, "Success", null, null);
             }
+            else {
+                LOGS.printLogs(req, logId, 3, "No User found for: " + number);
+                RESP.send(res, false, "No Result Found");
+            }
+        } else {
+            LOGS.printLogs(req, logId, 3, err);
+            RESP.send(res, false, "Internal Server Error", err);
+        }
     });
 };
 

@@ -1,8 +1,6 @@
 exports.register = function (data,cb) {
     cb({
-        'firstName' : data.firstName,
-        'lastName' : data.lastName,
-        'fullName' : data.firstName + data.lastName, 
+        'fullName' : data.fullName, 
         'email' : data.email ? data.email : null,
         'password' : data.password,
         'gender' : data.gender,
@@ -24,8 +22,6 @@ exports.register = function (data,cb) {
 
  exports.loginResp = function(data,token,cb){
      cb({
-        'firstName' : data.firstName,
-        'lastName' : data.lastName,
         'fullName' : data.fullName,
         'email' : data.email ? data.email : null,
         'password' : data.password,
