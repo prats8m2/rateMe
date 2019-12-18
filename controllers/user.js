@@ -16,11 +16,31 @@ var jwt = require('jsonwebtoken');
  * @apiParam {String} password User's account password.
  * @apiParam {String} gender User's gender M/F.
  * @apiParam {String} mobile User's mobile number.
- *
- * @apiSuccess {Boolean} status Status of the API Response.
- * @apiSuccess {String} message messsge of the API Response.
- * @apiSuccess {Object} err  Error messsge of the API Response.
- * @apiSuccess {Object} data  Data of the API Response.
+ * 
+ * @apiErrorExample {json} Error-Response:
+ *        HTTP/9005 Account already exist
+ *       {
+ *           "status": false,
+ *           "message": "Account already exist",
+ *           "err": 9005,
+ *           "data": null
+ *       }
+ *       HTTP/500 Internal server error
+ *      {
+ *          "status": false,
+ *          "message": "User validation failed: firstName: Path `firstName` is required.",
+ *          "err": 500,
+ *          "data": null
+ *       }
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/200 OK
+ *     {
+ *       "status": true,
+ *       "message": "Registration Succesfull",
+ *       "err": null,
+ *       "data": null
+ *      }
  */
 exports.register = function (req, res) {
    var logId  = LOGS.getlogId();
@@ -35,11 +55,11 @@ exports.register = function (req, res) {
             } else {
                 if(CONST.mongoDublicateError.indexOf(err.code) != -1){
                     LOGS.printLogs(req,logId,3,err);
-                    RESP.send(res,false,"Account already exist",err);                
+                    RESP.send(res,false,"Account already exist",CONST.ERROR.ACCOUNT_ALREADY_EXIST);                
                 }
                 else{
                     LOGS.printLogs(req,logId,3,err);
-                    RESP.send(res,false,"Internal Server Error",err);
+                    RESP.send(res,false,err,CONST.ERROR.INTERNAL_SERVER_ERROR);
                 }
             }
         });
@@ -98,6 +118,7 @@ exports.login = function(req,res){
  * @apiSuccess {String} message messsge of the API Response.
  * @apiSuccess {Object} err  Error messsge of the API Response.
  * @apiSuccess {Object} data  Data of the API Response.
+ *
  */
 exports.getUser = function(req,res){
     var logId  = LOGS.getlogId();
@@ -131,11 +152,10 @@ exports.getUser = function(req,res){
  * @apiGroup User
  *
  * @apiParam {String} mobile User's mobile number.
+ * @apiParam {String} apiKey Server API Key.
+ * @apiParam {Number} time Current timestamp in sec.
  * 
- * @apiSuccess {Boolean} status Status of the API Response.
- * @apiSuccess {String} message messsge of the API Response.
- * @apiSuccess {Object} err  Error messsge of the API Response.
- * @apiSuccess {Object} data  Data of the API Response.
+ *
  */
 exports.sendPass = function(req,res){
     var logId  = LOGS.getlogId();

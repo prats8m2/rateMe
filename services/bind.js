@@ -2,7 +2,7 @@ exports.register = function (data,cb) {
     cb({
         'firstName' : data.firstName,
         'lastName' : data.lastName,
-        'fullName' : data.fullName, 
+        'fullName' : data.firstName + data.lastName, 
         'email' : data.email ? data.email : null,
         'password' : data.password,
         'gender' : data.gender,

@@ -8,4 +8,6 @@ module.exports.ERROR = {
     'MISSING_API_KEY' : 9002,
     'INVALID_API_KEY' : 9003,
     'EXPIRED_API_KEY' : 9004,
+    'ACCOUNT_ALREADY_EXIST' : 9005,
+    'INTERNAL_SERVER_ERROR' : 500
 };
