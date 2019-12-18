@@ -12,7 +12,7 @@ var jwt = require('jsonwebtoken');
  * @apiGroup User
  *
  * @apiParam {String} firstName User's first name.
- * @apiParam {String} lasrName User's last name.
+ * @apiParam {String} lastName User's last name.
  * @apiParam {String} password User's account password.
  * @apiParam {String} gender User's gender M/F.
  * @apiParam {String} mobile User's mobile number.
@@ -118,10 +118,47 @@ exports.getUser = function(req,res){
                 }
             } else {
                 LOGS.printLogs(req,logId,3,err);
-                RESP.send(res,false,"No Result Found",err);
+                RESP.send(res,false,"Internal Server Error",err);
             }
     });
 };
+
+
+
+/**
+ * @api {get} /sendPass Send User password to his/her number
+ * @apiName Send Password
+ * @apiGroup User
+ *
+ * @apiParam {String} mobile User's mobile number.
+ * 
+ * @apiSuccess {Boolean} status Status of the API Response.
+ * @apiSuccess {String} message messsge of the API Response.
+ * @apiSuccess {Object} err  Error messsge of the API Response.
+ * @apiSuccess {Object} data  Data of the API Response.
+ */
+exports.sendPass = function(req,res){
+    var logId  = LOGS.getlogId();
+    var number = req.body.mobile;
+    LOGS.printClientDataLogs(req,logId);
+    LOGS.printLogs(req,logId,0,"Sent User PIN to its number process starts for: "+number);
+        USER.find( { mobile : number} ,function(err,result){
+            if (!err) {
+                if(result.length && result[0].fullName){
+                    LOGS.printLogs(req,logId,1,"User details fetched succefully for: "+result[0].fullName);
+                    RESP.send(res,true,"Success",null,null);         
+                }
+                else{
+                    LOGS.printLogs(req,logId,3,"No User found for: "+number); 
+                    RESP.send(res,false,"No Result Found");
+                }
+            } else {
+                LOGS.printLogs(req,logId,3,err);
+                RESP.send(res,false,"Internal Server Error",err);
+            }
+    });
+};
+
 
 
 

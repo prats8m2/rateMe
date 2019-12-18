@@ -13,3 +13,5 @@ const Contact = new Schema({
     timestamp: { type: Date, required: false, default: Date.now },
     status: { type: Number, required: false, default: 0 }
 });
+
+module.exports = mongoose.model('Contact', Contact);

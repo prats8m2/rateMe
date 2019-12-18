@@ -1,7 +1,11 @@
 var jwt = require('jsonwebtoken');
+var md5 = require('md5');
+
 const RESP = require('../services/resp');
 const LOGS = require('../services/logs');
 const USER = require('../controllers/user');
+const CONST = require('../constant');
+
 
 
 
@@ -9,29 +13,58 @@ module.exports.route = function (app) {
 
     app.post('/reg', USER.register);
     app.post('/login', USER.login);
-    app.get('/user',authenticate, USER.getUser);
+    app.get('/user', authenticate, USER.getUser);
+    app.post('/sendPass', secureAPI, USER.sendPass);
 };
 
-function authenticate(req,res,next){
-    var logId  = LOGS.getlogId();
-    if(req.query.token || req.body.token){
-        let token  = req.query.token ? req.query.token : req.body.token;
-        LOGS.printLogs(req,logId,0,"Authentication process starts for: "+token);
-        jwt.verify(token, 'Shhhh', function(err, decoded) {
-            if(!err){
-                LOGS.printLogs(req,logId,1,"Authentication process Success for: "+decoded.userId);
+function authenticate(req, res, next) {
+    var logId = LOGS.getlogId();
+    if (req.query.token || req.body.token) {
+        let token = req.query.token ? req.query.token : req.body.token;
+        LOGS.printLogs(req, logId, 0, "Authentication process starts for: " + token);
+        jwt.verify(token, 'Shhhh', function (err, decoded) {
+            if (!err) {
+                LOGS.printLogs(req, logId, 1, "Authentication process Success for: " + decoded.userId);
                 req.user = {};
                 req.user.userId = decoded.userId;
                 next();
             }
-            else{
-                LOGS.printLogs(req,logId,3,"Authentication token Invalid: "+token);
-                RESP.send(res,false,"Invalid Token",9001);        
+            else {
+                LOGS.printLogs(req, logId, 3, "Authentication token Invalid: " + token);
+                RESP.send(res, false, "Invalid Token", CONST.ERROR.INVALID_TOKEN);
             }
-          });
+        });
     }
-    else{
-        LOGS.printLogs(req,logId,1,"Authentication token missing");
-        RESP.send(res,false,"Missing Token",9000);
+    else {
+        LOGS.printLogs(req, logId, 1, "Authentication token missing");
+        RESP.send(res, false, "Missing Token", CONST.ERROR.MISSING_TOKEN);
+    }
+}
+
+function secureAPI(req, res, next) {
+    var logId = LOGS.getlogId();
+    var currentTime = Math.floor(Date.now() / 1000);
+    if (req.query.apiKey || req.body.apiKey) {
+        let apiKey = req.query.apiKey ? req.query.apiKey : req.body.apiKey;
+        let time = req.query.time ? req.query.time : req.body.time;
+        if (currentTime - time < CONST.TOKEN_EXPIRY_WINDOW) {
+            LOGS.printLogs(req, logId, 0, "API Authentication process starts for API Key: " + apiKey);
+            if (apiKey == md5(md5(time + "rateme" + time))) {
+                LOGS.printLogs(req, logId, 1, "Authentication process Success for API key");
+                next();
+            }
+            else {
+                LOGS.printLogs(req, logId, 3, "API key Invalid: " + apiKey);
+                RESP.send(res, false, "Invalid API Key", CONST.ERROR.INVALID_API_KEY);
+            }
+        }
+        else {
+            LOGS.printLogs(req, logId, 3, "API key Expired: " + apiKey);
+            RESP.send(res, false, "Expired API Key", CONST.ERROR.EXPIRED_API_KEY);
+        }
+    }
+    else {
+        LOGS.printLogs(req, logId, 1, "API key missing");
+        RESP.send(res, false, "Missing API key", CONST.ERROR.MISSING_API_KEY);
     }
 }
