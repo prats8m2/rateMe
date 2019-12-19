@@ -57,7 +57,7 @@ exports.register = function (req, res) {
                         if (!err) {
                             if (result) {
                                 if (result.isRegistered) {
-                                    LOGS.printLogs(req, logId, 3, err);
+                                    LOGS.printLogs(req, logId, 3, "Account already exist");
                                     RESP.send(res, false, "Account already exist", CONST.ERROR.ACCOUNT_ALREADY_EXIST);
                                 }
                                 else {

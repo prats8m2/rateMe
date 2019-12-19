@@ -51,11 +51,21 @@ exports.rating = function (req, res) {
     var review = req.body.review;
     var privacy = req.body.privacy ? req.body.privacy : 0;
 
+    
     //CHECK IF NUMBER IS ALREADY REGISTERED AS USER 
     USER.findOne({ mobile: mobile }, function (err, result) {
         if (result) {//IF USER EXIST ALREADY IN DB
             let friendId = result._id;
-            insertRating(logId, req, res, userId, friendId, rating, review, privacy);//CALL INSERT RATING FUNCTION
+            //CHECK FOR DUBLICATE RATING
+            RATINGS.findOne({ $and: [{ uid: userId }, { fid: friendId }] },function(err,result){
+                if(result){
+                    LOGS.printLogs(req, logId, 3, "Dublicate Rating");
+                    RESP.send(res, false, "Dublicate Rating", CONST.ERROR.DUBLICATE_RATING);
+                }
+                else{
+                    insertRating(logId, req, res, userId, friendId, rating, review, privacy);//CALL INSERT RATING FUNCTION
+                }
+            });
         }
         else { // IF USER NOT EXIST IN DB
             BIND.registerViaRating(mobile, function (bindData) {
