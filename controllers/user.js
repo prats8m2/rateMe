@@ -44,24 +44,24 @@ var jwt = require('jsonwebtoken');
 exports.register = function (req, res) {
     var logId = LOGS.getlogId();
     LOGS.printClientDataLogs(req, logId);
-    LOGS.printLogs(req, logId, 0, "Registration process starts for: " + req.body.firstName + " " + req.body.lastName);
+    LOGS.printLogs(req, logId, 0, "Registration process starts for: " + req.body.fullName);
     BIND.register(req.body, function (bindData) {
         var newUser = new USER(bindData);
         newUser.save(function (err, result) {
             if (!err) {
-                LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.firstName + " " + req.body.lastName);
+                LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.fullName );
                 RESP.send(res, true, "Registration Succesfull");
             } else {
                 if (CONST.mongoDublicateError.indexOf(err.code) != -1) {
-                    USER.find({ mobile: bindData.mobile }, function (err, result) {
+                    USER.findOne({ mobile: bindData.mobile }, function (err, result) {
                         if (!err) {
-                            if (result && result.length) {
-                                if (result[0].isRegistered) {
+                            if (result) {
+                                if (result.isRegistered) {
                                     LOGS.printLogs(req, logId, 3, err);
                                     RESP.send(res, false, "Account already exist", CONST.ERROR.ACCOUNT_ALREADY_EXIST);
                                 }
                                 else {
-                                    USER.find({ _id: result[0]._id }, { 'isRegistered': 1 }, function (err, result) {
+                                    USER.update({ _id: result._id }, { 'isRegistered': 1 }, function (err, result) {
                                         if (!err) {
                                             LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.firstName + " " + req.body.lastName);
                                             RESP.send(res, true, "Registration Succesfull");
@@ -112,12 +112,12 @@ exports.login = function (req, res) {
     LOGS.printClientDataLogs(req, logId);
     LOGS.printLogs(req, logId, 0, "Login process starts for: " + req.body.mobile);
     BIND.login(req.body, function (bindData) {
-        USER.find({ $and: [{ mobile: bindData.mobile }, { password: bindData.password }] }, function (err, result) {
+        USER.findOne({ $and: [{ mobile: bindData.mobile }, { password: bindData.password }] }, function (err, result) {
             if (!err) {
-                if (result.length && result[0].fullName) {
-                    LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result[0].fullName);
-                    jwt.sign({ userId: result[0]._id }, "Shhhh", { expiresIn: 60 }, function (err, token) {
-                        BIND.loginResp(result[0], token, function (respData) {
+                if (result) {
+                    LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result.fullName);
+                    jwt.sign({ userId: result._id }, "Shhhh", { expiresIn: '60Y' }, function (err, token) {
+                        BIND.loginResp(result, token, function (respData) {
                             RESP.send(res, true, "Login Succesfull", null, respData);
                         });
                     });
@@ -152,11 +152,11 @@ exports.getUser = function (req, res) {
     var userId = req.user.userId;
     LOGS.printClientDataLogs(req, logId);
     LOGS.printLogs(req, logId, 0, "Fetch User details process starts for: " + userId);
-    USER.find({ _id: userId }, function (err, result) {
+    USER.findOne({ _id: userId }, function (err, result) {
         if (!err) {
-            if (result.length && result[0].fullName) {
-                LOGS.printLogs(req, logId, 1, "Get User SUCCESS for: " + result[0].fullName);
-                BIND.getUserResp(result[0], function (respData) {
+            if (result.length) {
+                LOGS.printLogs(req, logId, 1, "Get User SUCCESS for: " + result.fullName);
+                BIND.getUserResp(result, function (respData) {
                     RESP.send(res, true, "Success", null, respData);
                 });
             }
@@ -189,10 +189,10 @@ exports.sendPass = function (req, res) {
     var number = req.body.mobile;
     LOGS.printClientDataLogs(req, logId);
     LOGS.printLogs(req, logId, 0, "Sent User PIN to its number process starts for: " + number);
-    USER.find({ mobile: number }, function (err, result) {
+    USER.findOne({ mobile: number }, function (err, result) {
         if (!err) {
-            if (result.length && result[0].fullName) {
-                LOGS.printLogs(req, logId, 1, "User details fetched succefully for: " + result[0].fullName);
+            if (result) {
+                LOGS.printLogs(req, logId, 1, "User details fetched succefully for: " + result.fullName);
                 RESP.send(res, true, "Success", null, null);
             }
             else {

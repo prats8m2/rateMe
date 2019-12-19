@@ -34,3 +34,35 @@ exports.register = function (data,cb) {
  exports.getUserResp = function(data,cb){
      cb(data);
  }
+
+
+ exports.registerViaRating = function(mobile,cb){
+     cb({
+        'fullName' : "RateMe User", 
+        'email' : null,
+        'password' : "1111",
+        'gender' : "M",
+        'mobile' : mobile,
+        'created' : Date.now(),
+        'settings':{
+            'notification' : 1
+        }
+     })
+ }
+
+ exports.ratingModel = function(uid, fid, rating, review, privacy, cb){
+    cb({
+        'uid' : uid, 
+        'fid' : fid,
+        'rating1' : rating[0],
+        'rating2' : rating[1],
+        'rating3' : rating[2],
+        'rating4' : rating[3],
+        'rating5' : rating[4],
+        'privacy' : privacy,
+        'status' : 1,
+        'comments':[{
+            'comment' : review
+        }]
+     })
+ }

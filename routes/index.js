@@ -4,6 +4,7 @@ var md5 = require('md5');
 const RESP = require('../services/resp');
 const LOGS = require('../services/logs');
 const USER = require('../controllers/user');
+const RATING = require('../controllers/ratings');
 const CONST = require('../constant');
 
 
@@ -15,12 +16,13 @@ module.exports.route = function (app) {
     app.post('/login', USER.login);
     app.get('/user', authenticate, USER.getUser);
     app.post('/sendPass', secureAPI, USER.sendPass);
+    app.post('/rate', ratingDataValidation, authenticate, RATING.rating);
 };
 
 function authenticate(req, res, next) {
     var logId = LOGS.getlogId();
-    if (req.query.token || req.body.token) {
-        let token = req.query.token ? req.query.token : req.body.token;
+    if (req.query.token || req.body.token || req.headers.token) {
+        let token = req.query.token ? req.query.token : (req.body.token ? req.body.token : req.headers.token);
         LOGS.printLogs(req, logId, 0, "Authentication process starts for: " + token);
         jwt.verify(token, 'Shhhh', function (err, decoded) {
             if (!err) {
@@ -30,6 +32,7 @@ function authenticate(req, res, next) {
                 next();
             }
             else {
+                console.log(err);
                 LOGS.printLogs(req, logId, 3, "Authentication token Invalid: " + token);
                 RESP.send(res, false, "Invalid Token", CONST.ERROR.INVALID_TOKEN);
             }
@@ -67,4 +70,20 @@ function secureAPI(req, res, next) {
         LOGS.printLogs(req, logId, 1, "API key missing");
         RESP.send(res, false, "Missing API key", CONST.ERROR.MISSING_API_KEY);
     }
+}
+
+function ratingDataValidation(req,res,next){
+    var rating = req.body.rating;
+    var flag = 0;
+    for(var idx in rating){
+        if(rating[idx] > 10 || rating[idx] < 1){
+            flag = 1;
+        }
+    }
+        if(flag){
+            RESP.send(res, false, "Invalid Rating Data", CONST.ERROR.INVALID_DATA);
+        }
+        else{
+            next();
+        }
 }

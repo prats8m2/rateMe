@@ -41,9 +41,53 @@ const CONST = require('../constant');
  *      }
  */
 exports.rating = function (req, res) {
-    var logId  = LOGS.getlogId();
-    LOGS.printClientDataLogs(req,logId);
-    LOGS.printLogs(req,logId,0,"Rating process starts for: "+req.body.mobile);
-    
- };
- 
+    var logId = LOGS.getlogId();
+    LOGS.printClientDataLogs(req, logId);
+    LOGS.printLogs(req, logId, 0, "Rating process starts for: " + req.body.mobile);
+
+    var mobile = req.body.mobile;
+    var rating = req.body.rating;
+    var userId = req.user.userId;
+    var review = req.body.review;
+    var privacy = req.body.privacy ? req.body.privacy : 0;
+
+    //CHECK IF NUMBER IS ALREADY REGISTERED AS USER 
+    USER.findOne({ mobile: mobile }, function (err, result) {
+        if (result) {//IF USER EXIST ALREADY IN DB
+            let friendId = result._id;
+            insertRating(logId, req, res, userId, friendId, rating, review, privacy);//CALL INSERT RATING FUNCTION
+        }
+        else { // IF USER NOT EXIST IN DB
+            BIND.registerViaRating(mobile, function (bindData) {
+                var newUser = new USER(bindData);
+                newUser.save(function (err, result) {
+                    if(!err){
+                        let friendId = result._id;
+                        insertRating(logId, req, res, userId, friendId, rating, review, privacy);//CALL INSERT RATING FUNCTION
+                    }
+                    else{
+                        LOGS.printLogs(req, logId, 3, err);
+                        RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+                    }
+                });
+            });
+
+        }
+    });
+};
+
+function insertRating(logId, req, res, uid, fid, rating, review, privacy){
+    BIND.ratingModel(uid, fid, rating, review, privacy, function (bindData) {
+        var newRating = new RATINGS(bindData);
+        newRating.save(function (err, result) {
+            if(!err){
+                LOGS.printLogs(req, logId, 1, "Rating process SUCCESS for: " + uid );
+                RESP.send(res, true, "Rating Succesfull");
+            }
+            else{
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+            }
+        });
+    });
+}
