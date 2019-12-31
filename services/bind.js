@@ -66,3 +66,21 @@ exports.register = function (data,cb) {
         }]
      })
  }
+
+ exports.ratingEdit = function(rating, review, privacy, cb){
+    cb({
+        'rating1' : rating[0],
+        'rating2' : rating[1],
+        'rating3' : rating[2],
+        'rating4' : rating[3],
+        'rating5' : rating[4],
+        'privacy' : privacy,
+        'comments':[{
+            'comment' : review
+        }]
+     })
+ }
+
+ exports.getUserRating = function(data,cb){
+    cb(data);
+}

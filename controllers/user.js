@@ -11,7 +11,8 @@ var jwt = require('jsonwebtoken');
  * @apiName Registration
  * @apiGroup User
  *
- * @apiParam {String} fullName User's full name.
+ * @apiParam {String} firstName User's first name.
+ * @apiParam {String} lastName User's last name.
  * @apiParam {String} password User's account password.
  * @apiParam {String} gender User's gender M/F.
  * @apiParam {String} mobile User's mobile number.
@@ -27,7 +28,7 @@ var jwt = require('jsonwebtoken');
  *       HTTP/500 Internal server error
  *      {
  *          "status": false,
- *          "message": "User validation failed: fullName: Path `fullName` is required.",
+ *          "message": "User validation failed: firstName: Path `firstName` is required.",
  *          "err": 500,
  *          "data": null
  *       }
@@ -42,55 +43,27 @@ var jwt = require('jsonwebtoken');
  *      }
  */
 exports.register = function (req, res) {
-    var logId = LOGS.getlogId();
-    LOGS.printClientDataLogs(req, logId);
-    LOGS.printLogs(req, logId, 0, "Registration process starts for: " + req.body.fullName);
-    BIND.register(req.body, function (bindData) {
-        var newUser = new USER(bindData);
-        newUser.save(function (err, result) {
+   var logId  = LOGS.getlogId();
+   LOGS.printClientDataLogs(req,logId);
+   LOGS.printLogs(req,logId,0,"Registration process starts for: "+req.body.firstName+" "+req.body.lastName);
+   BIND.register(req.body,function(bindData){
+       var newUser = new USER(bindData);
+        newUser.save(function (err,result) {
             if (!err) {
-                LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.fullName );
-                RESP.send(res, true, "Registration Succesfull");
+                LOGS.printLogs(req,logId,1,"Registration process SUCCESS for: "+req.body.firstName+" "+req.body.lastName); 
+                RESP.send(res,true,"Registration Succesfull");            
             } else {
-                if (CONST.mongoDublicateError.indexOf(err.code) != -1) {
-                    USER.findOne({ mobile: bindData.mobile }, function (err, result) {
-                        if (!err) {
-                            if (result) {
-                                if (result.isRegistered) {
-                                    LOGS.printLogs(req, logId, 3, "Account already exist");
-                                    RESP.send(res, false, "Account already exist", CONST.ERROR.ACCOUNT_ALREADY_EXIST);
-                                }
-                                else {
-                                    USER.update({ _id: result._id }, { 'isRegistered': 1 }, function (err, result) {
-                                        if (!err) {
-                                            LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.firstName + " " + req.body.lastName);
-                                            RESP.send(res, true, "Registration Succesfull");
-                                        }
-                                        else {
-                                            LOGS.printLogs(req, logId, 3, err);
-                                            RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
-                                        }
-                                    });
-                                }
-                            }
-                            else {
-                                LOGS.printLogs(req, logId, 3, err);
-                                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
-                            }
-                        }
-                        else {
-                            LOGS.printLogs(req, logId, 3, err);
-                            RESP.send(res, false, "Account already exist", CONST.ERROR.ACCOUNT_ALREADY_EXIST);
-                        }
-                    });
+                if(CONST.mongoDublicateError.indexOf(err.code) != -1){
+                    LOGS.printLogs(req,logId,3,err);
+                    RESP.send(res,false,"Account already exist",CONST.ERROR.ACCOUNT_ALREADY_EXIST);                
                 }
-                else {
-                    LOGS.printLogs(req, logId, 3, err);
-                    RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+                else{
+                    LOGS.printLogs(req,logId,3,err);
+                    RESP.send(res,false,err,CONST.ERROR.INTERNAL_SERVER_ERROR);
                 }
             }
         });
-    });
+   });
 };
 
 /**
@@ -100,38 +73,60 @@ exports.register = function (req, res) {
  *
  * @apiParam {String} mobile User's mobile number.
  * @apiParam {String} password User's account password.
- * 
- * @apiSuccess {Boolean} status Status of the API Response.
- * @apiSuccess {String} message messsge of the API Response.
- * @apiSuccess {Object} err  Error messsge of the API Response.
- * @apiSuccess {Object} data  Data of the API Response.
+ * @apiErrorExample {json} Error-Response:
+ *        HTTP/9006 Invalid Mobile number or Password   
+ *        {
+ *   "status": false,
+ *   "message": "Invalid Mobile number or Password",
+ *   "err": 9006,
+ *   "data": null
+ *    }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/200 OK
+ *     {
+ *   "status": true,
+ *   "message": "Login Succesfull",
+ *   "err": null,
+ *   "data": {
+ *       "firstName": "Amit",
+ *       "lastName": "Gupta",
+ *       "fullName": "AmitGupta",
+ *       "email": null,
+ *      "password": "1234",
+ *
+ *       "gender": "M",
+ *       "mobile": "9584117002",
+ *       "token": "eyJhbGciOiJIUzI......1NiIsI"
+ *       }
+ *    }
  */
 
-exports.login = function (req, res) {
-    var logId = LOGS.getlogId();
-    LOGS.printClientDataLogs(req, logId);
-    LOGS.printLogs(req, logId, 0, "Login process starts for: " + req.body.mobile);
-    BIND.login(req.body, function (bindData) {
-        USER.findOne({ $and: [{ mobile: bindData.mobile }, { password: bindData.password }] }, function (err, result) {
+exports.login = function(req,res){
+    var logId  = LOGS.getlogId();
+    LOGS.printClientDataLogs(req,logId);
+    LOGS.printLogs(req,logId,0,"Login process starts for: "+req.body.mobile);
+    BIND.login(req.body,function(bindData){
+        USER.find( { $and: [ { mobile : bindData.mobile }, { password: bindData.password } ] } ,function(err,result){
             if (!err) {
-                if (result) {
-                    LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result.fullName);
-                    jwt.sign({ userId: result._id }, "Shhhh", { expiresIn: '60Y' }, function (err, token) {
-                        BIND.loginResp(result, token, function (respData) {
-                            RESP.send(res, true, "Login Succesfull", null, respData);
+                if(result.length && result[0].fullName){
+                    LOGS.printLogs(req,logId,1,"Login process SUCCESS for: "+result[0].fullName);
+                    jwt.sign({ userId: result[0]._id }, "Shhhh",{expiresIn:60}, function(err, token) {
+                        BIND.loginResp(result[0],token,function(respData){
+                            RESP.send(res,true,"Login Succesfull",null,respData);            
                         });
-                    });
+                    }); 
                 }
-                else {
-                    LOGS.printLogs(req, logId, 3, "Login process Failed for: " + req.body.mobile);
-                    RESP.send(res, false, "Invalid Mobile number or Password");
+                else{
+                    LOGS.printLogs(req,logId,3,"Login process Failed for: "+req.body.mobile); 
+                    RESP.send(res,false,"Invalid Mobile number or Password",CONST.ERROR.Invalid_Mobile_number_or_Password);
                 }
             } else {
-                LOGS.printLogs(req, logId, 3, err);
-                RESP.send(res, false, "Internal Server Error", err);
+                LOGS.printLogs(req,logId,3,err);
+                RESP.send(res,false,err,CONST.ERROR.INTERNAL_SERVER_ERROR);
             }
         });
-    });
+    }); 
 }
 
 /**
@@ -141,33 +136,72 @@ exports.login = function (req, res) {
  *
  * @apiParam {String} token User's auth token.
  * 
- * @apiSuccess {Boolean} status Status of the API Response.
- * @apiSuccess {String} message messsge of the API Response.
- * @apiSuccess {Object} err  Error messsge of the API Response.
- * @apiSuccess {Object} data  Data of the API Response.
+ * @apiErrorExample {json} Error-Response:
+ *        HTTP/9001 Invalid Token
+ * 	{
+ *   "status": false,
+ *   "message": "Invalid Token",
+ *   "err": 9001,
+ *   "data": null
+ * }
+ *        HTTP/9001 Missing Token
+ * 	{
+ *   "status": false,
+ *   "message": "Missing Token",
+ *   "err": 9000,
+ *   "data": null
+ * }
  *
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/200 OK
+ *     {
+ *  "status": true,
+ *   "message": "Success",
+ *  "err": null,
+ *   "data": {
+ *       "settings": {
+ *           "notification": 1
+ *      },
+ *     "role": 1,
+ *      "status": 1,
+ *       "ratings": [],
+ *       "contacts": [],
+ *        "_id": "5df9f6ec6c703d65e1c57eab",
+ *       "firstName": "Amit",
+ *       "lastName": "Gupta",
+ *       "fullName": "AmitGupta",
+ *       "email": null,
+ *       "password": "1234",
+ *       "gender": "M",
+ *       "mobile": "9584117002",
+ *       "created": "1576662764479",
+ *       "ratingCount": 0,
+ *       "updated": "2019-12-18T09:52:44.484Z",
+ *       "__v": 0
+ *   }
+ * }
  */
-exports.getUser = function (req, res) {
-    var logId = LOGS.getlogId();
+exports.getUser = function(req,res){
+    var logId  = LOGS.getlogId();
     var userId = req.user.userId;
-    LOGS.printClientDataLogs(req, logId);
-    LOGS.printLogs(req, logId, 0, "Fetch User details process starts for: " + userId);
-    USER.findOne({ _id: userId }, function (err, result) {
-        if (!err) {
-            if (result.length) {
-                LOGS.printLogs(req, logId, 1, "Get User SUCCESS for: " + result.fullName);
-                BIND.getUserResp(result, function (respData) {
-                    RESP.send(res, true, "Success", null, respData);
-                });
+    LOGS.printClientDataLogs(req,logId);
+    LOGS.printLogs(req,logId,0,"Fetch User details process starts for: "+userId);
+        USER.find( { _id : userId} ,function(err,result){
+            if (!err) {
+                if(result.length && result[0].fullName){
+                    LOGS.printLogs(req,logId,1,"Get User SUCCESS for: "+result[0].fullName);
+                    BIND.getUserResp(result[0],function(respData){
+                        RESP.send(res,true,"Success",null,respData);
+                    });         
+                }
+                else{
+                    LOGS.printLogs(req,logId,3,"Get User Failed for: "+userId); 
+                    RESP.send(res,false,"No Result Found");
+                }
+            } else {
+                LOGS.printLogs(req,logId,3,err);
+                RESP.send(res,false,err,CONST.ERROR.INTERNAL_SERVER_ERROR);
             }
-            else {
-                LOGS.printLogs(req, logId, 3, "Get User Failed for: " + userId);
-                RESP.send(res, false, "No Result Found");
-            }
-        } else {
-            LOGS.printLogs(req, logId, 3, err);
-            RESP.send(res, false, "Internal Server Error", err);
-        }
     });
 };
 
@@ -184,28 +218,24 @@ exports.getUser = function (req, res) {
  * 
  *
  */
-exports.sendPass = function (req, res) {
-    var logId = LOGS.getlogId();
+exports.sendPass = function(req,res){
+    var logId  = LOGS.getlogId();
     var number = req.body.mobile;
-    LOGS.printClientDataLogs(req, logId);
-    LOGS.printLogs(req, logId, 0, "Sent User PIN to its number process starts for: " + number);
-    USER.findOne({ mobile: number }, function (err, result) {
-        if (!err) {
-            if (result) {
-                LOGS.printLogs(req, logId, 1, "User details fetched succefully for: " + result.fullName);
-                RESP.send(res, true, "Success", null, null);
+    LOGS.printClientDataLogs(req,logId);
+    LOGS.printLogs(req,logId,0,"Sent User PIN to its number process starts for: "+number);
+        USER.find( { mobile : number} ,function(err,result){
+            if (!err) {
+                if(result.length && result[0].fullName){
+                    LOGS.printLogs(req,logId,1,"User details fetched succefully for: "+result[0].fullName);
+                    RESP.send(res,true,"Success",null,null);         
+                }
+                else{
+                    LOGS.printLogs(req,logId,3,"No User found for: "+number); 
+                    RESP.send(res,false,"No Result Found");
+                }
+            } else {
+                LOGS.printLogs(req,logId,3,err);
+                RESP.send(res,false,"Internal Server Error",err);
             }
-            else {
-                LOGS.printLogs(req, logId, 3, "No User found for: " + number);
-                RESP.send(res, false, "No Result Found");
-            }
-        } else {
-            LOGS.printLogs(req, logId, 3, err);
-            RESP.send(res, false, "Internal Server Error", err);
-        }
     });
 };
-
-
-
-

@@ -51,18 +51,18 @@ exports.rating = function (req, res) {
     var review = req.body.review;
     var privacy = req.body.privacy ? req.body.privacy : 0;
 
-    
+
     //CHECK IF NUMBER IS ALREADY REGISTERED AS USER 
     USER.findOne({ mobile: mobile }, function (err, result) {
         if (result) {//IF USER EXIST ALREADY IN DB
             let friendId = result._id;
             //CHECK FOR DUBLICATE RATING
-            RATINGS.findOne({ $and: [{ uid: userId }, { fid: friendId }] },function(err,result){
-                if(result){
+            RATINGS.findOne({ $and: [{ uid: userId }, { fid: friendId }] }, function (err, result) {
+                if (result) {
                     LOGS.printLogs(req, logId, 3, "Dublicate Rating");
                     RESP.send(res, false, "Dublicate Rating", CONST.ERROR.DUBLICATE_RATING);
                 }
-                else{
+                else {
                     insertRating(logId, req, res, userId, friendId, rating, review, privacy);//CALL INSERT RATING FUNCTION
                 }
             });
@@ -71,11 +71,11 @@ exports.rating = function (req, res) {
             BIND.registerViaRating(mobile, function (bindData) {
                 var newUser = new USER(bindData);
                 newUser.save(function (err, result) {
-                    if(!err){
+                    if (!err) {
                         let friendId = result._id;
                         insertRating(logId, req, res, userId, friendId, rating, review, privacy);//CALL INSERT RATING FUNCTION
                     }
-                    else{
+                    else {
                         LOGS.printLogs(req, logId, 3, err);
                         RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
                     }
@@ -86,18 +86,66 @@ exports.rating = function (req, res) {
     });
 };
 
-function insertRating(logId, req, res, uid, fid, rating, review, privacy){
+function insertRating(logId, req, res, uid, fid, rating, review, privacy) {
     BIND.ratingModel(uid, fid, rating, review, privacy, function (bindData) {
         var newRating = new RATINGS(bindData);
         newRating.save(function (err, result) {
-            if(!err){
-                LOGS.printLogs(req, logId, 1, "Rating process SUCCESS for: " + uid );
+            if (!err) {
+                LOGS.printLogs(req, logId, 1, "Rating process SUCCESS for: " + uid);
                 RESP.send(res, true, "Rating Succesfull");
             }
-            else{
+            else {
                 LOGS.printLogs(req, logId, 3, err);
                 RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
             }
         });
     });
 }
+
+// Update user rating
+exports.rating = function (req, res) {
+    var logId = LOGS.getlogId();
+    LOGS.printClientDataLogs(req, logId);
+    LOGS.printLogs(req, logId, 0, "Update Rating start for: " + logId);
+
+    var rating = req.body.rating;
+    var ratingId = req.user.ratingId;
+    var review = req.body.review;
+    var privacy = req.body.privacy;
+
+    BIND.ratingEdit(rating, review, privacy, function (bindData) {
+        RATINGS.updateOne({ _id: ratingId }, (bindData), function (err, result) {
+            if (!err) {
+                LOGS.printLogs(req, logId, 1, "Update rating SUCCESS for: " + uid);
+                RESP.send(res, true, "Update Rating Succesfull");
+            }
+            else {
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+            }
+        });
+    });
+};
+
+
+// Get user rating
+exports.rating = function (req, res) {
+    var logId = LOGS.getlogId();
+    LOGS.printClientDataLogs(req, logId);
+    LOGS.printLogs(req, logId, 0, "Get User rating process start for: " + logId);
+
+    var ratingId = req.user.ratingId;
+
+    RATINGS.findOne( { _id : ratingId} ,function(err,result){
+        if (!err) {
+            LOGS.printLogs(req, logId, 1, "Get User rating SUCCESS for: " + ratingId);
+            BIND.getUserRating(result,function(respData){
+            RESP.send(res,true,"Success",null,respData);
+            });
+        }
+        else {
+            LOGS.printLogs(req, logId, 3, err);
+            RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+        }
+    });
+};
