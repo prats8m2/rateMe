@@ -11,8 +11,7 @@ var jwt = require('jsonwebtoken');
  * @apiName Registration
  * @apiGroup User
  *
- * @apiParam {String} firstName User's first name.
- * @apiParam {String} lastName User's last name.
+ * @apiParam {String} fullName User's full name.
  * @apiParam {String} password User's account password.
  * @apiParam {String} gender User's gender M/F.
  * @apiParam {String} mobile User's mobile number.
@@ -28,7 +27,7 @@ var jwt = require('jsonwebtoken');
  *       HTTP/500 Internal server error
  *      {
  *          "status": false,
- *          "message": "User validation failed: firstName: Path `firstName` is required.",
+ *          "message": "User validation failed: firstName: Path `fullName` is required.",
  *          "err": 500,
  *          "data": null
  *       }
@@ -44,13 +43,14 @@ var jwt = require('jsonwebtoken');
  */
 exports.register = function (req, res) {
    var logId  = LOGS.getlogId();
+
    LOGS.printClientDataLogs(req,logId);
-   LOGS.printLogs(req,logId,0,"Registration process starts for: "+req.body.firstName+" "+req.body.lastName);
+   LOGS.printLogs(req,logId,0,"Registration process starts for: " +req.body.fullName);
    BIND.register(req.body,function(bindData){
        var newUser = new USER(bindData);
         newUser.save(function (err,result) {
             if (!err) {
-                LOGS.printLogs(req,logId,1,"Registration process SUCCESS for: "+req.body.firstName+" "+req.body.lastName); 
+                LOGS.printLogs(req,logId,1,"Registration process SUCCESS for: "+req.body.fullName); 
                 RESP.send(res,true,"Registration Succesfull");            
             } else {
                 if(CONST.mongoDublicateError.indexOf(err.code) != -1){
@@ -89,12 +89,9 @@ exports.register = function (req, res) {
  *   "message": "Login Succesfull",
  *   "err": null,
  *   "data": {
- *       "firstName": "Amit",
- *       "lastName": "Gupta",
  *       "fullName": "AmitGupta",
  *       "email": null,
  *      "password": "1234",
- *
  *       "gender": "M",
  *       "mobile": "9584117002",
  *       "token": "eyJhbGciOiJIUzI......1NiIsI"
@@ -166,9 +163,7 @@ exports.login = function(req,res){
  *      "status": 1,
  *       "ratings": [],
  *       "contacts": [],
- *        "_id": "5df9f6ec6c703d65e1c57eab",
- *       "firstName": "Amit",
- *       "lastName": "Gupta",
+ *        "_id": "5df9f6ec6c703d65e1c57eab"
  *       "fullName": "AmitGupta",
  *       "email": null,
  *       "password": "1234",
