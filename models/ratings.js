@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const Ratings = new Schema({
-            uid: { type: String, required: true },
-            fid: { type: String, required: true },
+            uid: { type: String, required: true }, // user ID who is giving the rating
+            fid: { type: String, required: true }, // user ID for whom the rating is given
             rating1: { type: Number, required: false },
             rating2: { type: Number, required: false },
             rating3: { type: Number, required: false },

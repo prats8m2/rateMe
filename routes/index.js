@@ -17,13 +17,16 @@ module.exports.route = function (app) {
     app.get('/user', authenticate, USER.getUser);
     app.post('/sendPass', secureAPI, USER.sendPass);
     app.post('/rate', ratingDataValidation, authenticate, RATING.rating);
+    app.post('/ratingEdit', authenticate, RATING.ratingEdit);
+    app.get('/getUserRating', authenticate, RATING.getUserRating);
+
 };
 
 function authenticate(req, res, next) {
     var logId = LOGS.getlogId();
     if (req.query.token || req.body.token || req.headers.token) {
         let token = req.query.token ? req.query.token : (req.body.token ? req.body.token : req.headers.token);
-        LOGS.printLogs(req, logId, 0, "Authentication process starts for: " + token);
+        LOGS.printLoratingEditgs(req, logId, 0, "Authentication process starts for: " + token);
         jwt.verify(token, 'Shhhh', function (err, decoded) {
             if (!err) {
                 LOGS.printLogs(req, logId, 1, "Authentication process Success for: " + decoded.userId);

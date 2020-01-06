@@ -58,12 +58,13 @@ exports.rating = function (req, res) {
             let friendId = result._id;
             //CHECK FOR DUBLICATE RATING
             RATINGS.findOne({ $and: [{ uid: userId }, { fid: friendId }] }, function (err, result) {
-                if (result) {
+                if (refidsult) {
                     LOGS.printLogs(req, logId, 3, "Dublicate Rating");
                     RESP.send(res, false, "Dublicate Rating", CONST.ERROR.DUBLICATE_RATING);
                 }
                 else {
                     insertRating(logId, req, res, userId, friendId, rating, review, privacy);//CALL INSERT RATING FUNCTION
+                    updateRatingCount(logId,friendId);// CALL UPDATE RATING FUNCTION 
                 }
             });
         }
@@ -74,6 +75,7 @@ exports.rating = function (req, res) {
                     if (!err) {
                         let friendId = result._id;
                         insertRating(logId, req, res, userId, friendId, rating, review, privacy);//CALL INSERT RATING FUNCTION
+                        updateRatingCount(logId,friendId);// CALL UPDATE RATING FUNCTION 
                     }
                     else {
                         LOGS.printLogs(req, logId, 3, err);
@@ -102,14 +104,28 @@ function insertRating(logId, req, res, uid, fid, rating, review, privacy) {
     });
 }
 
+// Function for Updating the rating count
+function updateRatingCount(logId,fid) {
+        USER.findOneAndUpdate({uid:fid},{$inc : {ratingCount:1}}, function (err, result) {
+            if (!err) {
+                LOGS.printLogs(req, logId, 1, "Rating Count is Updating for: " + fid);
+                RESP.send(res, true, "Rating Count update Successfully");
+            }
+            else {
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+            }
+        });
+}
+
 // Update user rating
-exports.rating = function (req, res) {
+exports.ratingEdit = function (req, res) {
     var logId = LOGS.getlogId();
     LOGS.printClientDataLogs(req, logId);
     LOGS.printLogs(req, logId, 0, "Update Rating start for: " + logId);
 
     var rating = req.body.rating;
-    var ratingId = req.user.ratingId;
+    var ratingId = req.body.ratingId;
     var review = req.body.review;
     var privacy = req.body.privacy;
 
@@ -127,25 +143,57 @@ exports.rating = function (req, res) {
     });
 };
 
-
 // Get user rating
-exports.rating = function (req, res) {
+exports.getUserRating = function (req, res) {
     var logId = LOGS.getlogId();
     LOGS.printClientDataLogs(req, logId);
     LOGS.printLogs(req, logId, 0, "Get User rating process start for: " + logId);
 
-    var ratingId = req.user.ratingId;
+    var userId = req.user.userId;
 
-    RATINGS.findOne( { _id : ratingId} ,function(err,result){
-        if (!err) {
-            LOGS.printLogs(req, logId, 1, "Get User rating SUCCESS for: " + ratingId);
-            BIND.getUserRating(result,function(respData){
-            RESP.send(res,true,"Success",null,respData);
-            });
-        }
-        else {
-            LOGS.printLogs(req, logId, 3, err);
-            RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
-        }
-    });
+    // getting all the ratings that are received from friends 
+    if (userId) {
+        RATINGS.findOne({ fid: userId }, function (err, result) {
+            if (!err) {
+                LOGS.printLogs(req, logId, 1, "Get User rating SUCCESS for: " + ratingId);
+                BIND.getUserRating(result, function (respData) {
+                    RESP.send(res, true, "Success", null, respData);
+                });
+            }
+            else {
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+            }
+        });
+    }
+    // getting all the ratings that are given by me 
+    else if (userId) {
+        RATINGS.findOne({ uid: userId }, function (err, result) {
+            if (!err) {
+                LOGS.printLogs(req, logId, 1, "Get User rating SUCCESS for: " + ratingId);
+                BIND.getUserRating(result, function (respData) {
+                    RESP.send(res, true, "Success", null, respData);
+                });
+            }
+            else {
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+            }
+        });
+    }
+    // getting all the ratings that are either given by me or received from friends 
+    else {
+        RATINGS.findOne({ fid: userId }, function (err, result) {
+            if (!err) {
+                LOGS.printLogs(req, logId, 1, "Get User rating SUCCESS for: " + ratingId);
+                BIND.getUserRating(result, function (respData) {
+                    RESP.send(res, true, "Success", null, respData);
+                });
+            }
+            else {
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
+            }
+        });
+    }
 };

@@ -9,11 +9,7 @@ const User = new Schema({
     gender: { type: String, required: true },
     role: { type: Number, required: true, default: 1 },
     overallRating: { type: Number, required: false },
-    ratingCount: {
-        type: Number, required: false, default: function () {
-            return this.ratings ? this.ratings.length : 0;
-        }
-    },
+    ratingCount: {type: Number, required: false,default:0 },
     created: { type: String, required: true },
     updated: { type: Date, required: true, default: Date.now },
     rating1: { type: Number, required: false },
