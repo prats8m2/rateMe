@@ -49,7 +49,7 @@ exports.sms = function (uid,logId) {
 							{
 								if(result.count <= 3 || result.count % 2  == 1 ){
 									console.log("Sendind SMS");
-									count = result.count +1;
+									let count = result.count +1;
 									SMS.updateOne({ uid : result[uid]},{$set: {count: count}}, function(err, res){
 									if(err) throw err;
 									console.log("Count is Update");
