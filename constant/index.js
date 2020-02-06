@@ -12,5 +12,6 @@ module.exports.ERROR = {
     'INTERNAL_SERVER_ERROR' : 500,
     'Invalid_Mobile_number_or_Password' : 9006,
     'INVALID_DATA' : 9007,
-    'DUBLICATE_RATING': 9008
+    'DUBLICATE_RATING': 9008,
+    'INVALID_OTP': 9009
 };

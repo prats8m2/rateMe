@@ -1,9 +1,16 @@
-const USER = require('../models/user');
-const LOGS = require('../services/logs');
-const BIND = require('../services/bind');
-const RESP = require('../services/resp');
-const CONST = require('../constant');
-var jwt = require('jsonwebtoken');
+//IMPORT LIBRARY
+import jwt from "jsonwebtoken";
+
+//IMPORT FILES
+import USER from "../models/user";
+import OTP from "../models/otp";
+import LOGS from "../services/logs";
+import BIND from "../services/bind";
+import RESP from "../services/resp";
+import CONST from "../constant";
+import helper from "../controllers/helper";
+import QUERY from "../models/query";
+
 
 
 /**
@@ -41,30 +48,49 @@ var jwt = require('jsonwebtoken');
  *       "data": null
  *      }
  */
-exports.register = function (req, res) {
-   var logId  = LOGS.getlogId();
+const register = async function (req, res) {
+    try {
+        var logId = LOGS.getlogId();//GET LOGID
+        LOGS.printClientDataLogs(req, logId);//PRINT CLIENT DETAILS
+        LOGS.printLogs(req, logId, 0, "Registration process starts for: " + req.body.fullName);//PRINT LOG
 
-   LOGS.printClientDataLogs(req,logId);
-   LOGS.printLogs(req,logId,0,"Registration process starts for: " +req.body.fullName);
-   BIND.register(req.body,function(bindData){
-       var newUser = new USER(bindData);
-        newUser.save(function (err,result) {
-            if (!err) {
-                LOGS.printLogs(req,logId,1,"Registration process SUCCESS for: "+req.body.fullName); 
-                RESP.send(res,true,"Registration Succesfull");            
-            } else {
-                if(CONST.mongoDublicateError.indexOf(err.code) != -1){
-                    LOGS.printLogs(req,logId,3,err);
-                    RESP.send(res,false,"Account already exist",CONST.ERROR.ACCOUNT_ALREADY_EXIST);                
-                }
-                else{
-                    LOGS.printLogs(req,logId,3,err);
-                    RESP.send(res,false,err,CONST.ERROR.INTERNAL_SERVER_ERROR);
-                }
-            }
-        });
-   });
+        var otpVerified = await verifyOTP(req.body.mobile, req.body.otp);
+
+        if (otpVerified) {//IF OTP VERIFIED OR NOT
+            //BIND DATA FOR USER REGISTRATION
+            var bindData = await BIND.register(req.body);
+
+            //BIND USER MODEL
+            var newUser = new USER(bindData);
+
+            //SAVE DATA IN USER COLLECTION
+            await QUERY.save(newUser);
+
+            //PRINT LOGS & SEND RESPONSE
+            LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.fullName);
+            RESP.send(res, true, "Registration Succesfull");
+        }
+        else {
+            //SEND INVALID OTP RESPONSE
+            RESP.send(res, false, "Invalid OTP", CONST.ERROR.ACCOUNT_ALREADY_EXIST);
+        }
+
+    }
+    catch (e) {
+        //CHECK FOR ANY MONGO ERROR
+        if (CONST.mongoDublicateError.indexOf(err.code) != -1) {
+            LOGS.printLogs(req, logId, 3, err);
+            RESP.send(res, false, "Account already exist", CONST.ERROR.ACCOUNT_ALREADY_EXIST);
+        }
+        else {
+            //SEND DEFAULT ERROR
+            RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
 };
+exports.register = register;
 
 /**
  * @api {post} /login Login User in system
@@ -99,32 +125,39 @@ exports.register = function (req, res) {
  *    }
  */
 
-exports.login = function(req,res){
-    var logId  = LOGS.getlogId();
-    LOGS.printClientDataLogs(req,logId);
-    LOGS.printLogs(req,logId,0,"Login process starts for: "+req.body.mobile);
-    BIND.login(req.body,function(bindData){
-        USER.find( { $and: [ { mobile : bindData.mobile }, { password: bindData.password } ] } ,function(err,result){
-            if (!err) {
-                if(result.length && result[0].fullName){
-                    LOGS.printLogs(req,logId,1,"Login process SUCCESS for: "+result[0].fullName);
-                    jwt.sign({ userId: result[0]._id }, "Shhhh",{expiresIn:60}, function(err, token) {
-                        BIND.loginResp(result[0],token,function(respData){
-                            RESP.send(res,true,"Login Succesfull",null,respData);            
+const login = async function (req, res) {
+    try {
+        var logId = LOGS.getlogId();
+        LOGS.printClientDataLogs(req, logId);
+        LOGS.printLogs(req, logId, 0, "Login process starts for: " + req.body.mobile);
+        BIND.login(req.body, function (bindData) {
+            USER.find({ $and: [{ mobile: bindData.mobile }, { password: bindData.password }] }, function (err, result) {
+                if (!err) {
+                    if (result.length && result[0].fullName) {
+                        LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result[0].fullName);
+                        jwt.sign({ userId: result[0]._id }, "Shhhh", { expiresIn: 60 }, function (err, token) {
+                            BIND.loginResp(result[0], token, function (respData) {
+                                RESP.send(res, true, "Login Succesfull", null, respData);
+                            });
                         });
-                    }); 
+                    }
+                    else {
+                        LOGS.printLogs(req, logId, 3, "Login process Failed for: " + req.body.mobile);
+                        RESP.send(res, false, "Invalid Mobile number or Password", CONST.ERROR.Invalid_Mobile_number_or_Password);
+                    }
+                } else {
+                    LOGS.printLogs(req, logId, 3, err);
+                    RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
                 }
-                else{
-                    LOGS.printLogs(req,logId,3,"Login process Failed for: "+req.body.mobile); 
-                    RESP.send(res,false,"Invalid Mobile number or Password",CONST.ERROR.Invalid_Mobile_number_or_Password);
-                }
-            } else {
-                LOGS.printLogs(req,logId,3,err);
-                RESP.send(res,false,err,CONST.ERROR.INTERNAL_SERVER_ERROR);
-            }
+            });
         });
-    }); 
-}
+    }
+    catch (e) {
+
+    }
+
+};
+exports.login = login;
 
 /**
  * @api {get} /user Give user account details
@@ -176,29 +209,36 @@ exports.login = function(req,res){
  *   }
  * }
  */
-exports.getUser = function(req,res){
-    var logId  = LOGS.getlogId();
-    var userId = req.user.userId;
-    LOGS.printClientDataLogs(req,logId);
-    LOGS.printLogs(req,logId,0,"Fetch User details process starts for: "+userId);
-        USER.find( { _id : userId} ,function(err,result){
+const getUser = async function (req, res) {
+    try {
+        var logId = LOGS.getlogId();
+        var userId = req.user.userId;
+        LOGS.printClientDataLogs(req, logId);
+        LOGS.printLogs(req, logId, 0, "Fetch User details process starts for: " + userId);
+        USER.find({ _id: userId }, function (err, result) {
             if (!err) {
-                if(result.length && result[0].fullName){
-                    LOGS.printLogs(req,logId,1,"Get User SUCCESS for: "+result[0].fullName);
-                    BIND.getUserResp(result[0],function(respData){
-                        RESP.send(res,true,"Success",null,respData);
-                    });         
+                if (result.length && result[0].fullName) {
+                    LOGS.printLogs(req, logId, 1, "Get User SUCCESS for: " + result[0].fullName);
+                    BIND.getUserResp(result[0], function (respData) {
+                        RESP.send(res, true, "Success", null, respData);
+                    });
                 }
-                else{
-                    LOGS.printLogs(req,logId,3,"Get User Failed for: "+userId); 
-                    RESP.send(res,false,"No Result Found");
+                else {
+                    LOGS.printLogs(req, logId, 3, "Get User Failed for: " + userId);
+                    RESP.send(res, false, "No Result Found");
                 }
             } else {
-                LOGS.printLogs(req,logId,3,err);
-                RESP.send(res,false,err,CONST.ERROR.INTERNAL_SERVER_ERROR);
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
             }
-    });
+        });
+    }
+    catch (e) {
+        RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);
+    }
+
 };
+exports.getUser = getUser;
 
 
 
@@ -210,27 +250,96 @@ exports.getUser = function(req,res){
  * @apiParam {String} mobile User's mobile number.
  * @apiParam {String} apiKey Server API Key.
  * @apiParam {Number} time Current timestamp in sec.
- * 
- *
  */
-exports.sendPass = function(req,res){
-    var logId  = LOGS.getlogId();
-    var number = req.body.mobile;
-    LOGS.printClientDataLogs(req,logId);
-    LOGS.printLogs(req,logId,0,"Sent User PIN to its number process starts for: "+number);
-        USER.find( { mobile : number} ,function(err,result){
+const sendPass = async function (req, res) {
+    try {
+        var logId = LOGS.getlogId();
+        var number = req.body.mobile;
+        LOGS.printClientDataLogs(req, logId);
+        LOGS.printLogs(req, logId, 0, "Sent User PIN to its number process starts for: " + number);
+        USER.find({ mobile: number }, function (err, result) {
             if (!err) {
-                if(result.length && result[0].fullName){
-                    LOGS.printLogs(req,logId,1,"User details fetched succefully for: "+result[0].fullName);
-                    RESP.send(res,true,"Success",null,null);         
+                if (result.length && result[0].fullName) {
+                    LOGS.printLogs(req, logId, 1, "User details fetched succefully for: " + result[0].fullName);
+                    RESP.send(res, true, "Success", null, null);
                 }
-                else{
-                    LOGS.printLogs(req,logId,3,"No User found for: "+number); 
-                    RESP.send(res,false,"No Result Found");
+                else {
+                    LOGS.printLogs(req, logId, 3, "No User found for: " + number);
+                    RESP.send(res, false, "No Result Found");
                 }
             } else {
-                LOGS.printLogs(req,logId,3,err);
-                RESP.send(res,false,"Internal Server Error",err);
+                LOGS.printLogs(req, logId, 3, err);
+                RESP.send(res, false, "Internal Server Error", err);
             }
-    });
+        });
+    }
+    catch (e) {
+        RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);
+    }
+
 };
+exports.sendPass = sendPass;
+
+/**
+ * @api {post} /sentOTP Send User otp to his/her number
+ * @apiName Send OTP
+ * @apiGroup User
+ *
+ * @apiParam {String} mobile User's mobile number.
+ * 
+ */
+const sentOTP = async function (req, res) {
+    try {
+        var logId = LOGS.getlogId();
+        var mobile = req.body.mobile;
+        LOGS.printClientDataLogs(req, logId);
+        LOGS.printLogs(req, logId, 0, `Sent User PIN to its number process starts for:${mobile}`);
+        var otp = helper.generateOTP();
+        OTP.find({ $and: [{ mobile: mobile }] }, function (err, result) {
+            if (!err) {
+                if (result.length) {
+                    var otpData = {
+                        "otp": otp
+                    };
+                    OTP.findOneAndUpdate({ mobile: mobile }, { otp: otp }, function (err, result) {
+                        RESP.send(res, true, "OTP Send Succesfull", null);
+                        LOGS.printLogs(req, logId, 0, `OTP ${otp} sent successfuly for:${mobile}`);
+                    });
+                }
+                else {
+                    var otpData = new OTP({
+                        "mobile": mobile,
+                        "otp": otp
+                    });
+                    otpData.save(function (err, result) {
+                        RESP.send(res, true, "OTP send Succesfully", null);
+                        LOGS.printLogs(req, logId, 0, `OTP ${otp} sent successfuly for:${mobile}`);
+
+                    });
+                }
+            }
+        });
+
+    }
+    catch (e) {
+        RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);
+    }
+
+
+};
+exports.sentOTP = sentOTP;
+
+//VERIFY OTP OF USER
+const verifyOTP = async function (mobile, otp) {
+    let where = {
+        'mobile': mobile,
+        'otp': otp
+    }
+    var result = await QUERY.findOne(OTP, where);
+    if (result && result.length) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
