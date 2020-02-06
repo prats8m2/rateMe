@@ -344,6 +344,14 @@ const verifyOTP = async function (mobile, otp) {
     }
 }
 
+/**
+ * @api {get} /getOTP Get User otp by his/her number
+ * @apiName Send OTP
+ * @apiGroup User
+ *
+ * @apiParam {String} mobile User's mobile number.
+ * 
+ */
 const getOTP = async function(req,res){
     var where ={
         'mobile' : req.query.mobile
