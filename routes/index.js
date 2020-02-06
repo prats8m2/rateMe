@@ -20,6 +20,7 @@ module.exports.route = function (app) {
     app.post('/ratingEdit', authenticate, RATING.ratingEdit);
     app.get('/getUserRating', authenticate, RATING.getUserRating);
     app.post('/sendOTP', USER.sentOTP);
+    app.get('/getOTP', USER.getOTP);
 
 };
 

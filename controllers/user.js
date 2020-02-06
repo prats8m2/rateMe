@@ -343,3 +343,12 @@ const verifyOTP = async function (mobile, otp) {
         return false;
     }
 }
+
+const getOTP = async function(req,res){
+    var where ={
+        'mobile' : req.query.mobile
+    }
+    var result = await QUERY.findOne(OTP, where);
+    res.send(result);
+}
+exports.getOTP = getOTP;
