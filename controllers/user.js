@@ -304,7 +304,7 @@ const sentOTP = async function (req, res) {
                         "otp": otp
                     };
                     OTP.findOneAndUpdate({ mobile: mobile }, { otp: otp }, function (err, result) {
-                        RESP.send(res, true, "OTP Send Succesfull", null);
+                        RESP.send(res, true, "OTP Send Succesfull", otpData);
                         LOGS.printLogs(req, logId, 0, `OTP ${otp} sent successfuly for:${mobile}`);
                     });
                 }
