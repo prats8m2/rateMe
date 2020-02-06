@@ -22,6 +22,8 @@ import QUERY from "../models/query";
  * @apiParam {String} password User's account password.
  * @apiParam {String} gender User's gender M/F.
  * @apiParam {String} mobile User's mobile number.
+ * @apiParam {Number} otp User's OTP code.
+ * 
  * 
  * @apiErrorExample {json} Error-Response:
  *        HTTP/9005 Account already exist
