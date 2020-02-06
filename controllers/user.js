@@ -346,7 +346,7 @@ const verifyOTP = async function (mobile, otp) {
 
 /**
  * @api {get} /getOTP Get User otp by his/her number
- * @apiName Send OTP
+ * @apiName Get OTP
  * @apiGroup User
  *
  * @apiParam {String} mobile User's mobile number.
