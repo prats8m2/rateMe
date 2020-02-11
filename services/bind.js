@@ -30,7 +30,8 @@ exports.loginResp = function (data, token, cb) {
         'password': data.password,
         'gender': data.gender,
         'mobile': data.mobile,
-        'token': token
+        'token': token,
+        'isLogged': data.isLogged
     });
 }
 

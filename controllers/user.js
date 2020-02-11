@@ -70,7 +70,7 @@ const register = async function (req, res) {
 
             //PRINT LOGS & SEND RESPONSE
             LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.fullName);
-            RESP.send(res, true, "Registration Succesfull");
+            RESP.send(res, true, "Registration Succesfull",null,{isLogged: req.body.isLogged});
         }
         else {
             //SEND INVALID OTP RESPONSE
@@ -78,7 +78,7 @@ const register = async function (req, res) {
         }
 
     }
-    catch (e) {
+    catch (err) {
         //CHECK FOR ANY MONGO ERROR
         if (CONST.mongoDublicateError.indexOf(err.code) != -1) {
             LOGS.printLogs(req, logId, 3, err);
@@ -138,6 +138,7 @@ const login = async function (req, res) {
                     if (result.length && result[0].fullName) {
                         LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result[0].fullName);
                         jwt.sign({ userId: result[0]._id }, "Shhhh", { expiresIn: 60 }, function (err, token) {
+                            result[0].isLogged = req.body.isLogged;
                             BIND.loginResp(result[0], token, function (respData) {
                                 RESP.send(res, true, "Login Succesfull", null, respData);
                             });
@@ -314,7 +315,7 @@ const sentOTP = async function (req, res) {
                         "otp": otp
                     });
                     otpData.save(function (err, result) {
-                        RESP.send(res, true, "OTP send Succesfully", null);
+                        RESP.send(res, true, "OTP send Succesfully", otpData);
                         LOGS.printLogs(req, logId, 0, `OTP ${otp} sent successfuly for:${mobile}`);
 
                     });
