@@ -70,7 +70,7 @@ const register = async function (req, res) {
 
             //PRINT LOGS & SEND RESPONSE
             LOGS.printLogs(req, logId, 1, "Registration process SUCCESS for: " + req.body.fullName);
-            RESP.send(res, true, "Registration Succesfull",null,{isLogged: req.body.isLogged});
+            RESP.send(res, true, "Registration Succesfull", null, { isLogged: req.body.isLogged });
         }
         else {
             //SEND INVALID OTP RESPONSE
@@ -129,34 +129,41 @@ exports.register = register;
 
 const login = async function (req, res) {
     try {
+
         var logId = LOGS.getlogId();
         LOGS.printClientDataLogs(req, logId);
         LOGS.printLogs(req, logId, 0, "Login process starts for: " + req.body.mobile);
-        BIND.login(req.body, function (bindData) {
-            USER.find({ $and: [{ mobile: bindData.mobile }, { password: bindData.password }] }, function (err, result) {
-                if (!err) {
-                    if (result.length && result[0].fullName) {
-                        LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result[0].fullName);
-                        jwt.sign({ userId: result[0]._id }, "Shhhh", { expiresIn: 60 }, function (err, token) {
-                            result[0].isLogged = req.body.isLogged;
-                            BIND.loginResp(result[0], token, function (respData) {
-                                RESP.send(res, true, "Login Succesfull", null, respData);
-                            });
-                        });
-                    }
-                    else {
-                        LOGS.printLogs(req, logId, 3, "Login process Failed for: " + req.body.mobile);
-                        RESP.send(res, false, "Invalid Mobile number or Password", CONST.ERROR.Invalid_Mobile_number_or_Password);
-                    }
-                } else {
-                    LOGS.printLogs(req, logId, 3, err);
-                    RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
-                }
-            });
-        });
+
+        //BIND DATA FOR LOGIN USER LOGIN
+        var bindData = await BIND.login(req.body);
+
+        var userData = await QUERY.findOne(USER, { mobile: bindData.mobile, password: bindData.password });
+
+        if (userData && userData.fullName) {
+
+            LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result[0].fullName);
+
+            //CREATE JWT TOKEN AFTER VALIDATING CREDS
+            var token = jwt.sign({ userId: result[0]._id }, 'shhhhh', { expiresIn: 60 });
+
+            //ADD ADDITIAONAL PARAM FOR DEV PURPOSE
+            result[0].isLogged = req.body.isLogged;
+
+            //BIND LOGIN RESPONSE DATA
+            var respData = await BIND.loginResp(userData, token);
+
+            // SEND RESPONSE
+            RESP.send(res, true, "Login Succesfull", null, respData);
+
+        }
+        else {
+            LOGS.printLogs(req, logId, 3, "Login process Failed for: " + req.body.mobile);
+            RESP.send(res, false, "Invalid Mobile number or Password", CONST.ERROR.Invalid_Mobile_number_or_Password);
+        }
     }
     catch (e) {
-
+        //SEND DEFAULT ERROR
+        RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);
     }
 
 };
@@ -214,29 +221,33 @@ exports.login = login;
  */
 const getUser = async function (req, res) {
     try {
+        //PRINT LOGS & FETCH DATA
         var logId = LOGS.getlogId();
         var userId = req.user.userId;
         LOGS.printClientDataLogs(req, logId);
         LOGS.printLogs(req, logId, 0, "Fetch User details process starts for: " + userId);
-        USER.find({ _id: userId }, function (err, result) {
-            if (!err) {
-                if (result.length && result[0].fullName) {
-                    LOGS.printLogs(req, logId, 1, "Get User SUCCESS for: " + result[0].fullName);
-                    BIND.getUserResp(result[0], function (respData) {
-                        RESP.send(res, true, "Success", null, respData);
-                    });
-                }
-                else {
-                    LOGS.printLogs(req, logId, 3, "Get User Failed for: " + userId);
-                    RESP.send(res, false, "No Result Found");
-                }
-            } else {
-                LOGS.printLogs(req, logId, 3, err);
-                RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
-            }
-        });
+
+        //FETCH USER FROM DB
+        var userData = await QUERY.findOne(USER, { _id: userId });
+
+        //IF USER FOUND IN DB 
+        if (userData && userData.fullName) {
+            LOGS.printLogs(req, logId, 1, "Get User SUCCESS for: " + userData.fullName);
+            
+            //BIND USER DATA RESPONSE
+            var respData = await BIND.getUserResp(userData);
+            
+            //SEND RESPONSE
+            RESP.send(res, true, "Success", null, respData);
+        }
+        else {//IF USER NOT FOUND IN DB
+            LOGS.printLogs(req, logId, 3, "Get User Failed for: " + userId);
+            
+            //SEND RESPONSE
+            RESP.send(res, false, "No Result Found");
+        }
     }
-    catch (e) {
+    catch (e) {//ERROR HANDLING
         RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);
     }
 
@@ -355,9 +366,9 @@ const verifyOTP = async function (mobile, otp) {
  * @apiParam {String} mobile User's mobile number.
  * 
  */
-const getOTP = async function(req,res){
-    var where ={
-        'mobile' : req.query.mobile
+const getOTP = async function (req, res) {
+    var where = {
+        'mobile': req.query.mobile
     }
     var result = await QUERY.findOne(OTP, where);
     res.send(result);

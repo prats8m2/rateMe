@@ -1,4 +1,4 @@
-exports.register = function (data, cb) {
+exports.register = function (data) {
     return new Promise(
         (resolve, reject) => {
             resolve({
@@ -16,27 +16,36 @@ exports.register = function (data, cb) {
 };
 
 
-exports.login = function (data, cb) {
-    cb({
-        'password': data.password,
-        'mobile': data.mobile
-    });
+exports.login = function (data) {
+    return new Promise(
+        (resolve, reject) => {
+            resolve({
+                'password': data.password,
+                'mobile': data.mobile
+            })
+        });
 };
 
-exports.loginResp = function (data, token, cb) {
-    cb({
-        'fullName': data.fullName,
-        'email': data.email ? data.email : null,
-        'password': data.password,
-        'gender': data.gender,
-        'mobile': data.mobile,
-        'token': token,
-        'isLogged': data.isLogged
-    });
-}
+exports.loginResp = function (data, token) {
+    return new Promise(
+        (resolve, reject) => {
+            resolve({
+                'fullName': data.fullName,
+                'email': data.email ? data.email : null,
+                'password': data.password,
+                'gender': data.gender,
+                'mobile': data.mobile,
+                'token': token,
+                'isLogged': data.isLogged
+            })
+        });
+};
 
 exports.getUserResp = function (data, cb) {
-    cb(data);
+    return new Promise(
+        (resolve, reject) => {
+            resolve(data)
+        });
 }
 
 
