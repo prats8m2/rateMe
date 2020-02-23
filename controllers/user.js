@@ -87,7 +87,7 @@ const register = async function (req, res) {
         }
         else {
             //SEND DEFAULT ERROR
-            RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);
+            RESP.send(res, false, err, CONST.ERROR.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -145,7 +145,7 @@ const login = async function (req, res) {
             LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + userData.fullName);
 
             //CREATE JWT TOKEN AFTER VALIDATING CREDS
-            var token = jwt.sign({ userId: userData._id }, 'shhhhh', { expiresIn: 60 });
+            var token = jwt.sign({ userId: userData._id }, 'shhhhh', { expiresIn: 60000000 });
 
             //ADD ADDITIAONAL PARAM FOR DEV PURPOSE
             userData.isLogged = req.body.isLogged;
@@ -351,7 +351,7 @@ const verifyOTP = async function (mobile, otp) {
         'otp': otp
     }
     var result = await QUERY.findOne(OTP, where);
-    if (result && result.length) {
+    if (result && result._id) {
         return true;
     }
     else {
@@ -392,20 +392,29 @@ const syncContact = async function (req, res) {
         LOGS.printClientDataLogs(req, logId);
         LOGS.printLogs(req, logId, 0, "Sync  details process starts for: " + userId);
 
-        for (var data of req.body) {
-            //BIND DATA FOR USER REGISTRATION
-            var bindData = await BIND.syncContact(data);
-            //BIND USER MODEL
-            var newContact = new CONTACT(bindData);
-
-            //SAVE DATA IN USER COLLECTION
-            await QUERY.save(newContact);
-
+        //BIND DATA FOR CONTACT SYNCUP
+        var bindData = await BIND.syncContact(req.body);
+        for (var idx in bindData) {
+            //FETCH USER FROM DB
+            let contactData = await QUERY.findOne(CONTACT, { mobile: bindData[idx].mobile });
+            if (contactData && contactData._id) {
+                await QUERY.updateOne(USER, { _id: userId }, { $push: { contacts: contactData._id } });
+                delete bindData[idx];
+            }
         }
 
-        //PRINT LOGS & SEND RESPONSE
+        
+        //SAVE DATA IN CONTACT COLLECTION
+        var response = await QUERY.saveMany(CONTACT, bindData);
+        
+        for (var idx in response) {
+            //FETCH USER FROM DB
+            await QUERY.updateOne(USER, { _id: userId }, { $push: { contacts: response[idx]._id } });
+        }
         LOGS.printLogs(req, logId, 1, "Contact sync successfull" + req.body.fullName);
         RESP.send(res, true, "Success", null, null);
+
+        //PRINT LOGS & SEND RESPONSE
     }
     catch (e) {
         RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);

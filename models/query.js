@@ -3,7 +3,6 @@ const findOne = (COLLECTION, where) => {
     return new Promise(
         (resolve, reject) => {
             COLLECTION.find({ $and: [where] }, function (err, result) {
-                console.log(result);
                 if (!err) {
                     resolve(result[0]);
                 }
@@ -30,3 +29,33 @@ const save = (DATA) => {
         });
 }
 exports.save = save;
+
+const saveMany = (COLLECTION,DATA) => {
+    return new Promise(
+        (resolve, reject) => {
+            COLLECTION.create(DATA,function (err, result) {
+                if (!err) {
+                    resolve(result);
+                }
+                else {
+                    reject(err);
+                }
+            });
+        });
+}
+exports.saveMany = saveMany;
+
+const updateOne = (COLLECTION,WHERE,DATA) => {
+    return new Promise(
+        (resolve, reject) => {
+            COLLECTION.updateOne(WHERE,DATA,function (err, result) {
+                if (!err) {
+                    resolve(result);
+                }
+                else {
+                    reject(err);
+                }
+            });
+        });
+}
+exports.updateOne = updateOne;

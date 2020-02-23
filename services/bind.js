@@ -98,13 +98,16 @@ exports.getUserRating = function (data, cb) {
     cb(data);
 }
 
-exports.syncContact = function (data) {
+exports.syncContact = function (datas) {
     return new Promise(
         (resolve, reject) => {
-            console.log(data.name);
-            resolve({
-                'fullName': data.name,
-                'mobile': data.number
-            });
+            var contact = [];
+            for (var data of datas) {
+                contact.push({
+                    'fullName': data.name,
+                    'mobile': data.number
+                })
+            }
+            resolve(contact);
         });
 }
