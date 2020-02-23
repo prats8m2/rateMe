@@ -97,3 +97,14 @@ exports.ratingEdit = function (rating, review, privacy, cb) {
 exports.getUserRating = function (data, cb) {
     cb(data);
 }
+
+exports.syncContact = function (data) {
+    return new Promise(
+        (resolve, reject) => {
+            console.log(data.name);
+            resolve({
+                'fullName': data.name,
+                'mobile': data.number
+            });
+        });
+}

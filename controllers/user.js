@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 
 //IMPORT FILES
 import USER from "../models/user";
+import CONTACT from "../models/contact";
 import OTP from "../models/otp";
 import LOGS from "../services/logs";
 import BIND from "../services/bind";
@@ -141,13 +142,13 @@ const login = async function (req, res) {
 
         if (userData && userData.fullName) {
 
-            LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + result[0].fullName);
+            LOGS.printLogs(req, logId, 1, "Login process SUCCESS for: " + userData.fullName);
 
             //CREATE JWT TOKEN AFTER VALIDATING CREDS
-            var token = jwt.sign({ userId: result[0]._id }, 'shhhhh', { expiresIn: 60 });
+            var token = jwt.sign({ userId: userData._id }, 'shhhhh', { expiresIn: 60 });
 
             //ADD ADDITIAONAL PARAM FOR DEV PURPOSE
-            result[0].isLogged = req.body.isLogged;
+            userData.isLogged = req.body.isLogged;
 
             //BIND LOGIN RESPONSE DATA
             var respData = await BIND.loginResp(userData, token);
@@ -233,16 +234,16 @@ const getUser = async function (req, res) {
         //IF USER FOUND IN DB 
         if (userData && userData.fullName) {
             LOGS.printLogs(req, logId, 1, "Get User SUCCESS for: " + userData.fullName);
-            
+
             //BIND USER DATA RESPONSE
             var respData = await BIND.getUserResp(userData);
-            
+
             //SEND RESPONSE
             RESP.send(res, true, "Success", null, respData);
         }
         else {//IF USER NOT FOUND IN DB
             LOGS.printLogs(req, logId, 3, "Get User Failed for: " + userId);
-            
+
             //SEND RESPONSE
             RESP.send(res, false, "No Result Found");
         }
@@ -326,7 +327,7 @@ const sentOTP = async function (req, res) {
                         "otp": otp
                     });
                     otpData.save(function (err, result) {
-                        RESP.send(res, true, "OTP send Succesfully", otpData);
+                        RESP.send(res, true, "OTP send Succesfully", null, otpData);
                         LOGS.printLogs(req, logId, 0, `OTP ${otp} sent successfuly for:${mobile}`);
 
                     });
@@ -374,3 +375,40 @@ const getOTP = async function (req, res) {
     res.send(result);
 }
 exports.getOTP = getOTP;
+
+/**
+ * @api {post} /syncContact Sync user contact to db
+ * @apiName Sync Contact
+ * @apiGroup User
+ *
+ * @apiParam {Object} name User's contact name.
+ * @apiParam {Object} number User's contact number.
+ */
+const syncContact = async function (req, res) {
+    try {
+        //PRINT LOGS & FETCH DATA
+        var logId = LOGS.getlogId();
+        var userId = req.user.userId;
+        LOGS.printClientDataLogs(req, logId);
+        LOGS.printLogs(req, logId, 0, "Sync  details process starts for: " + userId);
+
+        for (var data of req.body) {
+            //BIND DATA FOR USER REGISTRATION
+            var bindData = await BIND.syncContact(data);
+            //BIND USER MODEL
+            var newContact = new CONTACT(bindData);
+
+            //SAVE DATA IN USER COLLECTION
+            await QUERY.save(newContact);
+
+        }
+
+        //PRINT LOGS & SEND RESPONSE
+        LOGS.printLogs(req, logId, 1, "Contact sync successfull" + req.body.fullName);
+        RESP.send(res, true, "Success", null, null);
+    }
+    catch (e) {
+        RESP.send(res, false, e, CONST.ERROR.INTERNAL_SERVER_ERROR);
+    }
+}
+exports.syncContact = syncContact;

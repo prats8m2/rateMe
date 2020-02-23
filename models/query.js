@@ -3,8 +3,9 @@ const findOne = (COLLECTION, where) => {
     return new Promise(
         (resolve, reject) => {
             COLLECTION.find({ $and: [where] }, function (err, result) {
+                console.log(result);
                 if (!err) {
-                    resolve(result);
+                    resolve(result[0]);
                 }
                 else {
                     reject(err);
