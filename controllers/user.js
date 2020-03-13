@@ -384,10 +384,16 @@ exports.getOTP = getOTP;
  * @apiParam {String} name User's contact name.
  * @apiParam {String} number User's contact number.
  * @apiParamExample {json} Request-Example:
- *     [{
- *       "name": "Prateek Singh",
- *       "number" : "9568956899"
- *     }]
+ *     [
+ *       {
+ *          "name": "Prateek Singh",
+ *          "number" : "9568956899"
+ *       },
+ *       {
+ *          "name": "Prateek Singh",
+ *          "number" : "9568956899"
+ *       }
+ *      ]
  */
 const syncContact = async function (req, res) {
     try {
