@@ -377,12 +377,17 @@ const getOTP = async function (req, res) {
 exports.getOTP = getOTP;
 
 /**
- * @api {post} /syncContact Sync user contact to db
+ * @api {post} /sync Sync user contact to db
  * @apiName Sync Contact
  * @apiGroup User
  *
- * @apiParam {Object} name User's contact name.
- * @apiParam {Object} number User's contact number.
+ * @apiParam {String} name User's contact name.
+ * @apiParam {String} number User's contact number.
+ * @apiParamExample {json} Request-Example:
+ *     [{
+ *       "name": "Prateek Singh",
+ *       "number" : "9568956899"
+ *     }]
  */
 const syncContact = async function (req, res) {
     try {
